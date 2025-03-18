@@ -8,6 +8,7 @@ import com.henry.expensetracker.exception.ExpenseNotFoundException;
 import com.henry.expensetracker.exception.ExpenseNotUpdated;
 import com.henry.expensetracker.entity.Expense;
 import com.henry.expensetracker.service.impl.ExpenseServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/expenses")
 public class ExpenseController {
@@ -25,13 +27,15 @@ public class ExpenseController {
      * Endpoint para agregar un nuevo gasto.
      * Se espera que la fecha se envíe en formato ISO (yyyy-MM-dd).
      */
-    @PostMapping("/add")
+    @PostMapping
     public ResponseEntity<?> addExpense(
             @RequestBody ExpenseRequest expense) {
         try {
+            log.info("Adding a new expense: {}", expense.getDescription());
             ExpenseResponse expenseResponse = expenseService.addExpense(expense);
             return ResponseEntity.ok(expenseResponse);
         } catch (ExpenseNotAdded e) {
+            log.error("An error occurred while trying to save the new expense: {}", e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
         }
     }
@@ -39,12 +43,15 @@ public class ExpenseController {
     /**
      * Endpoint para listar los gastos de un usuario.
      */
-    @GetMapping("/user/{userId}")
+    @GetMapping("/user/{email}")
     public ResponseEntity<?> listExpensesByUser(@PathVariable String email) {
         try {
+            log.info("Getting all expenses of: {}", email);
+            log.warn("Repository is processing a list of expenses");
             List<ExpenseResponse> expenses = expenseService.listExpensesByUser(email);
             return ResponseEntity.ok(expenses);
         } catch (ExpenseNotFoundException e) {
+            log.error("An error occurred while trying to get all expenses: {}", e.getMessage());
             return ResponseEntity.status(404).body(e.getMessage());
         }
     }
@@ -55,9 +62,12 @@ public class ExpenseController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getExpense(@PathVariable Long id) {
         try {
+            log.info("Getting expense: {}", id);
+            log.warn("The expense with that id might not exist");
             ExpenseResponse expense = expenseService.getExpense(id);
             return ResponseEntity.ok(expense);
         } catch (ExpenseNotFoundException e) {
+            log.error("An error occurred while trying to get that expense: {}", e.getMessage());
             return ResponseEntity.status(404).body(e.getMessage());
         }
     }
@@ -68,9 +78,12 @@ public class ExpenseController {
     @GetMapping
     public ResponseEntity<?> getAllExpenses() {
         try {
+            log.info("Getting all expenses");
+            log.warn("Repository is processing a list of expenses");
             List<ExpenseResponse> expenses = expenseService.getAllExpenses();
             return ResponseEntity.ok(expenses);
         } catch (ExpenseNotFoundException e) {
+            log.error("An error occurred while trying to get all categories: {}", e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
         }
     }
@@ -84,16 +97,20 @@ public class ExpenseController {
             @PathVariable Long id,
             @RequestBody ExpenseRequest expense) {
         try {
+            log.info("Updating expense: {}", id);
+            log.warn("The expense with that id might not exist");
             boolean updated = expenseService.updateExpense(expense, id);
             if (updated) {
-                return ResponseEntity.ok("Gasto actualizado exitosamente.");
+                return ResponseEntity.ok("Expense updated.");
             } else {
-                return ResponseEntity.status(404).body("Gasto no encontrado.");
+                return ResponseEntity.status(404).body("Expense not found");
             }
         } catch (ExpenseNotUpdated e) {
+            log.error("An error occurred while trying to update the expense: {}", e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(400).body("Formato de fecha inválido. Utilice el formato ISO (yyyy-MM-dd).");
+            log.error("An error occurred while trying to update the expense: {}", e.getMessage());
+            return ResponseEntity.status(400).body("Invalid date format. Please use ISO format (yyyy-MM-dd)");
         }
     }
 
@@ -103,13 +120,16 @@ public class ExpenseController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteExpense(@PathVariable Long id) {
         try {
+            log.info("Deleting expense: {}", id);
+            log.warn("The expense with that id might not exist");
             boolean deleted = expenseService.deleteExpense(id);
             if (deleted) {
-                return ResponseEntity.ok("Gasto eliminado exitosamente.");
+                return ResponseEntity.ok("Expense deleted");
             } else {
-                return ResponseEntity.status(404).body("Gasto no encontrado.");
+                return ResponseEntity.status(404).body("Expense not found");
             }
         } catch (ExpenseNotDeleted e) {
+            log.error("An error occurred while trying to delete the expense: {}", e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
         }
     }
