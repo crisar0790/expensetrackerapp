@@ -24,7 +24,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<?> addUser(@RequestBody UserRequest userRequest) {
         try {
-            log.info("Adding a new user: {}", user.getEmail());
+            log.info("Adding a new user: {}", userRequest.getEmail());
             UserResponse createdUser = userService.addUser(userRequest);
             return ResponseEntity.ok(createdUser);
         } catch (AddUserException e) {
