@@ -1,8 +1,16 @@
 package com.henry.expensetracker.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Setter
+@AllArgsConstructor
 public class User {
     private Long id;
     private String name;
@@ -21,37 +29,37 @@ public class User {
         this.expenses = new ArrayList<>();
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public List<Expense> getExpenses() {
-        return expenses;
-    }
-
-    public void setExpenses(List<Expense> expenses) {
-        this.expenses = expenses;
-    }
+//    public Long getId() {
+//        return id;
+//    }
+//
+//    public void setId(Long id) {
+//        this.id = id;
+//    }
+//
+//    public String getName() {
+//        return name;
+//    }
+//
+//    public void setName(String name) {
+//        this.name = name;
+//    }
+//
+//    public String getEmail() {
+//        return email;
+//    }
+//
+//    public void setEmail(String email) {
+//        this.email = email;
+//    }
+//
+//    public List<Expense> getExpenses() {
+//        return expenses;
+//    }
+//
+//    public void setExpenses(List<Expense> expenses) {
+//        this.expenses = expenses;
+//    }
 
 //    public void addExpense(Expense expense) {
 //        ExpenseValidator validator = exp -> exp.getAmount() > 0 && exp.getDate() != null && !exp.getCategory().isEmpty();

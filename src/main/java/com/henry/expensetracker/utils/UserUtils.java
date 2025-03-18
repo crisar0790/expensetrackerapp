@@ -15,6 +15,7 @@ public class UserUtils {
 
     @Autowired
     private UserRepositoryImpl userRepositoryImpl;
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     public User getUserByEmail(String email) throws GetUserException {

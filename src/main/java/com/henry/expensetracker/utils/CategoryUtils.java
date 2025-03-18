@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CategoryUtils {
-    private final String SQL_GET_CATEGORY_BY_NAME = "SELECT name FROM category WHERE name = ?";
+    private final String SQL_GET_CATEGORY_BY_NAME = "SELECT id FROM category WHERE name = ?";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
