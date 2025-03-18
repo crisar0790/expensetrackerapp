@@ -24,16 +24,18 @@ import java.util.List;
 
 @Repository
 public class ExpenseRepositoryImpl implements ExpenseRepository {
-    private final String SQL_ADD_EXPENSE = "INSERT INTO expense (description, amount, date, category_id, user_id, category) VALUES (?, ?, ?, ?, ?, ?)";
+    private final String SQL_ADD_EXPENSE = "INSERT INTO expense (description, amount, `date`, id_category, id_user, category) VALUES (?, ?, ?, ?, ?, ?)";
     private final String SQL_GET_EXPENSE = "SELECT * FROM expense WHERE id = ?";
-    private final String SQL_LIST_EXPENSE_BY_USER = "SELECT * FROM expense WHERE user_id = ?";
+    private final String SQL_LIST_EXPENSE_BY_USER = "SELECT * FROM expense WHERE id_user = ?";
     private final String SQL_GET_ALL_EXPENSES = "SELECT * FROM expense";
-    private final String SQL_UPDATE_EXPENSE = "UPDATE expense SET description = ?, amount = ?, date = ?, category_id = ?, category = ? WHERE id = ?";
+    private final String SQL_UPDATE_EXPENSE = "UPDATE expense SET description = ?, amount = ?, `date` = ?, id_category = ?, category = ? WHERE id = ?";
     private final String SQL_DELETE_EXPENSE = "DELETE FROM expense WHERE id = ?";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
     private UserUtils userUtils;
+    @Autowired
     private CategoryUtils categoryUtils;
 
     @Override
@@ -95,7 +97,7 @@ public class ExpenseRepositoryImpl implements ExpenseRepository {
         try {
             return jdbcTemplate.queryForObject(SQL_GET_EXPENSE, expenseRowMapper, id);
         } catch (EmptyResultDataAccessException e) {
-            throw new ExpenseNotFoundException("Expense with ID not found: " + id);
+            throw new ExpenseNotFoundException("Expense with ID "+ id + " not found");
         } catch (DataAccessException e) {
             throw new ExpenseNotFoundException("Error getting expense with ID: " + id);
         }
