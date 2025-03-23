@@ -2,45 +2,98 @@ package com.henry.expensetracker.service.impl;
 
 import com.henry.expensetracker.controller.model.request.ExpenseRequest;
 import com.henry.expensetracker.controller.model.response.ExpenseResponse;
-import com.henry.expensetracker.exception.ExpenseNotAdded;
-import com.henry.expensetracker.exception.ExpenseNotDeleted;
-import com.henry.expensetracker.exception.ExpenseNotFoundException;
-import com.henry.expensetracker.exception.ExpenseNotUpdated;
+import com.henry.expensetracker.entity.Category;
+import com.henry.expensetracker.entity.User;
+import com.henry.expensetracker.exception.*;
 import com.henry.expensetracker.entity.Expense;
-import com.henry.expensetracker.repository.impl.ExpenseRepositoryImpl;
+import com.henry.expensetracker.repository.ExpenseRepository;
 import com.henry.expensetracker.service.ExpenseService;
+import com.henry.expensetracker.utils.CategoryUtils;
+import com.henry.expensetracker.utils.UserUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ExpenseServiceImpl implements ExpenseService {
     @Autowired
-    private ExpenseRepositoryImpl expenseRepositoryImpl;
+    private ExpenseRepository expenseRepository;
+    @Autowired
+    private UserUtils userUtils;
+    @Autowired
+    private CategoryUtils categoryUtils;
 
-    public ExpenseResponse addExpense(ExpenseRequest expense) throws ExpenseNotAdded {
-        return expenseRepositoryImpl.addExpense(expense);
+    public ExpenseResponse addExpense(ExpenseRequest expenseRequest) throws ExpenseNotAdded, GetUserException {
+        Expense expense = mapToExpense(expenseRequest);
+        expenseRepository.save(expense);
+
+        return mapToExpenseResponse(expense);
     }
 
-    public List<ExpenseResponse> listExpensesByUser(String email) throws ExpenseNotFoundException {
-        return expenseRepositoryImpl.listExpensesByUser(email);
+    public List<ExpenseResponse> listExpensesByUser(String email) throws ExpenseNotFoundException, GetUserException {
+        User user = userUtils.getUserByEmail(email);
+        return  expenseRepository.findByIdUser(user.getId()).stream()
+                .map(this::mapToExpenseResponse)
+                .collect(Collectors.toList());
     }
 
     public ExpenseResponse getExpense(Long id) throws ExpenseNotFoundException {
-        return expenseRepositoryImpl.getExpense(id);
+        Expense expense = expenseRepository.findById(id)
+                .orElseThrow(() -> new ExpenseNotFoundException("Expense with ID: " + id + " did not found"));
+
+        return mapToExpenseResponse(expense);
     }
 
     public List<ExpenseResponse> getAllExpenses() throws ExpenseNotFoundException {
-        return expenseRepositoryImpl.getAllExpenses();
+        return expenseRepository.findAll().stream()
+                .map(this::mapToExpenseResponse)
+                .collect(Collectors.toList());
     }
 
-    public boolean updateExpense(ExpenseRequest expense, Long id) throws ExpenseNotUpdated {
-        return expenseRepositoryImpl.updateExpense(expense, id);
+    public boolean updateExpense(ExpenseRequest expenseRequest, Long id) throws ExpenseNotUpdated, ExpenseNotFoundException, GetUserException {
+        Expense expense = expenseRepository.findById(id)
+                .orElseThrow(() -> new ExpenseNotFoundException("Expense with ID: " + id + " did not found"));
+
+        Expense expenseToUpdate = mapToExpense(expenseRequest);
+        expense.setIdUser(expenseToUpdate.getIdUser());
+        expense.setIdCategory(expenseToUpdate.getIdCategory());
+        expense.setAmount(expenseToUpdate.getAmount());
+        expense.setDate(expenseToUpdate.getDate());
+        expense.setCategory(expenseToUpdate.getCategory());
+        expense.setDescription(expenseToUpdate.getDescription());
+
+        expenseRepository.save(expense);
+
+        return true;
     }
 
     public boolean deleteExpense(Long id) throws ExpenseNotDeleted {
-        return expenseRepositoryImpl.deleteExpense(id);
+        expenseRepository.deleteById(id);
+
+        return true;
+    }
+
+    private Expense mapToExpense(ExpenseRequest expenseRequest) throws GetUserException {
+        User user = userUtils.getUserByEmail(expenseRequest.getUserEmail());
+        Category category = categoryUtils.getCategoryByName(expenseRequest.getCategory());
+        return new Expense(
+                user.getId(),
+                category.getId(),
+                expenseRequest.getAmount(),
+                expenseRequest.getDate(),
+                expenseRequest.getCategory(),
+                expenseRequest.getDescription()
+        );
+    }
+
+    private ExpenseResponse mapToExpenseResponse(Expense expense) {
+        return new ExpenseResponse(
+                expense.getId(),
+                expense.getAmount(),
+                expense.getDate(),
+                expense.getCategory()
+        );
     }
 }
