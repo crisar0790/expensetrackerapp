@@ -1,12 +1,10 @@
 package com.henry.expensetracker.repository;
 
-import com.henry.expensetracker.controller.model.response.UserResponse;
-import com.henry.expensetracker.exception.AddUserException;
-import com.henry.expensetracker.exception.GetUserException;
 import com.henry.expensetracker.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-public interface UserRepository {
-    UserResponse addUser(User user) throws AddUserException;
-
-//    User getUserByEmail(String email) throws GetUserException;
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    User findByEmail(String email);
 }

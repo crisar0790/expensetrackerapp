@@ -1,26 +1,16 @@
 package com.henry.expensetracker.repository;
 
-import com.henry.expensetracker.controller.model.request.ExpenseRequest;
-import com.henry.expensetracker.controller.model.response.ExpenseResponse;
-import com.henry.expensetracker.exception.ExpenseNotAdded;
-import com.henry.expensetracker.exception.ExpenseNotDeleted;
-import com.henry.expensetracker.exception.ExpenseNotFoundException;
-import com.henry.expensetracker.exception.ExpenseNotUpdated;
 import com.henry.expensetracker.entity.Expense;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
 import java.util.List;
 
-public interface ExpenseRepository {
-    ExpenseResponse addExpense(ExpenseRequest expense) throws ExpenseNotAdded;
+@Repository
+public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
-    List<ExpenseResponse> listExpensesByUser(String email) throws ExpenseNotFoundException;
-
-    ExpenseResponse getExpense(Long id) throws ExpenseNotFoundException;
-
-    List<ExpenseResponse> getAllExpenses() throws ExpenseNotFoundException;
-
-    boolean updateExpense(ExpenseRequest expense, Long id) throws ExpenseNotUpdated;
-
-    boolean deleteExpense(Long id) throws ExpenseNotDeleted;
+    @Query("SELECT e FROM Expense e WHERE e.idUser = :idUser")
+    List<Expense> findByIdUser(@Param("idUser") Long idUser);
 }
