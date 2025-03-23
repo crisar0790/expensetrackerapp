@@ -2,12 +2,13 @@ package com.henry.expensetracker.service.impl;
 
 import com.henry.expensetracker.controller.model.request.ExpenseRequest;
 import com.henry.expensetracker.controller.model.response.ExpenseResponse;
+import com.henry.expensetracker.entity.Category;
 import com.henry.expensetracker.entity.Expense;
-import com.henry.expensetracker.exception.ExpenseNotAdded;
-import com.henry.expensetracker.exception.ExpenseNotDeleted;
-import com.henry.expensetracker.exception.ExpenseNotFoundException;
-import com.henry.expensetracker.exception.ExpenseNotUpdated;
-import com.henry.expensetracker.repository.impl.ExpenseRepositoryImpl;
+import com.henry.expensetracker.entity.User;
+import com.henry.expensetracker.exception.*;
+import com.henry.expensetracker.repository.ExpenseRepository;
+import com.henry.expensetracker.utils.CategoryUtils;
+import com.henry.expensetracker.utils.UserUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -27,165 +29,113 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ExpenseServiceImplTest {
     @Mock
-    private ExpenseRepositoryImpl expenseRepositoryImpl;
+    private ExpenseRepository expenseRepository;
+
+    @Mock
+    private UserUtils userUtils;
+
+    @Mock
+    private CategoryUtils categoryUtils;
 
     @InjectMocks
-    private ExpenseServiceImpl expenseServiceImpl;
+    private ExpenseServiceImpl expenseService;
 
     private ExpenseRequest expenseRequest;
     private Expense expense;
-    private ExpenseResponse expenseResponse;
+    private User user;
+    private Category category;
 
     @BeforeEach
     void setUp() {
-        expenseRequest = new ExpenseRequest("user@example.com", 100.0, LocalDate.now(), "Food", "Lunch");
-        expense = new Expense(1L, 100.0, LocalDate.now(), "Food", "Lunch");
-        expenseResponse = new ExpenseResponse(1L, 100.0, LocalDate.now(), "Food");
+        user = new User(1L, "John Doe", "test@example.com");
+        category = new Category(1L, "Food", "Expenses for meals and groceries");
+        expenseRequest = new ExpenseRequest("test@example.com", 100.0, LocalDate.now(), "Food", "Dinner at restaurant");
+        expense = new Expense(1L, 1L, 1L, 100.0, LocalDate.now(), "Food", "Dinner at restaurant");
     }
 
-    @DisplayName("addExpense should return ExpenseResonse qhen Expense is added successfully")
     @Test
-    void addExpense_ShouldReturnExpenseResponse_WhenExpenseIsAddedSuccessfully() throws ExpenseNotAdded {
-        when(expenseRepositoryImpl.addExpense(expenseRequest)).thenReturn(expenseResponse);
+    void testAddExpense_Success() throws ExpenseNotAdded, GetUserException {
+        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(user);
+        when(categoryUtils.getCategoryByName(expenseRequest.getCategory())).thenReturn(category);
+        when(expenseRepository.save(any(Expense.class))).thenReturn(expense);
 
-        ExpenseResponse response = expenseServiceImpl.addExpense(expenseRequest);
+        ExpenseResponse response = expenseService.addExpense(expenseRequest);
 
         assertNotNull(response);
         assertEquals(100.0, response.getAmount());
         assertEquals("Food", response.getCategory());
 
-        verify(expenseRepositoryImpl, times(1)).addExpense(expenseRequest);
+        verify(expenseRepository, times(1)).save(any(Expense.class));
     }
 
-    @DisplayName("listExpenseByUser should return a List of Expenses when user has expenses")
     @Test
-    void listExpensesByUser_ShouldReturnListOfExpenses_WhenUserHasExpenses() throws ExpenseNotFoundException {
-        List<ExpenseResponse> expenses = Arrays.asList(
-                new ExpenseResponse(1L, 50.0, LocalDate.now(), "Transport"),
-                new ExpenseResponse(2L, 30.0, LocalDate.now(), "Entertainment")
-        );
+    void testListExpensesByUser_Success() throws ExpenseNotFoundException, GetUserException {
+        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(user);
+        when(expenseRepository.findByIdUser(user.getId())).thenReturn(List.of(expense));
 
-        when(expenseRepositoryImpl.listExpensesByUser("user@example.com")).thenReturn(expenses);
-
-        List<ExpenseResponse> responses = expenseServiceImpl.listExpensesByUser("user@example.com");
+        List<ExpenseResponse> responses = expenseService.listExpensesByUser(expenseRequest.getUserEmail());
 
         assertNotNull(responses);
-        assertEquals(2, responses.size());
-        assertEquals("Transport", responses.get(0).getCategory());
-        assertEquals("Entertainment", responses.get(1).getCategory());
-
-        verify(expenseRepositoryImpl, times(1)).listExpensesByUser("user@example.com");
-    }
-
-    @DisplayName("getExpense should return ExpenseResponse when id is valid")
-    @Test
-    void getExpense_ShouldReturnExpenseResponse_WhenIdIsValid() throws ExpenseNotFoundException {
-        when(expenseRepositoryImpl.getExpense(1L)).thenReturn(expenseResponse);
-
-        ExpenseResponse response = expenseServiceImpl.getExpense(1L);
-
-        assertNotNull(response);
-        assertEquals(100.0, response.getAmount());
-        assertEquals("Food", response.getCategory());
-
-        verify(expenseRepositoryImpl, times(1)).getExpense(1L);
-    }
-
-    @DisplayName("getAllExpenses should return a List of all Expenses")
-    @Test
-    void getAllExpenses_ShouldReturnListOfAllExpenses() throws ExpenseNotFoundException {
-        List<ExpenseResponse> expenses = Arrays.asList(
-                new ExpenseResponse(1L, 100.0, LocalDate.now(), "Food"),
-                new ExpenseResponse(2L, 50.0, LocalDate.now(), "Transport")
-        );
-
-        when(expenseRepositoryImpl.getAllExpenses()).thenReturn(expenses);
-
-        List<ExpenseResponse> responses = expenseServiceImpl.getAllExpenses();
-
-        assertNotNull(responses);
-        assertEquals(2, responses.size());
+        assertEquals(1, responses.size());
         assertEquals("Food", responses.get(0).getCategory());
-        assertEquals("Transport", responses.get(1).getCategory());
 
-        verify(expenseRepositoryImpl, times(1)).getAllExpenses();
+        verify(expenseRepository, times(1)).findByIdUser(user.getId());
     }
 
-    @DisplayName("updateExpense ahould return true when Expense is updated successfully")
     @Test
-    void updateExpense_ShouldReturnTrue_WhenExpenseIsUpdatedSuccessfully() throws ExpenseNotUpdated {
-        when(expenseRepositoryImpl.updateExpense(expenseRequest, 1L)).thenReturn(true);
+    void testGetExpense_Success() throws ExpenseNotFoundException {
+        when(expenseRepository.findById(1L)).thenReturn(Optional.of(expense));
 
-        boolean updated = expenseServiceImpl.updateExpense(expenseRequest, 1L);
+        ExpenseResponse response = expenseService.getExpense(1L);
+
+        assertNotNull(response);
+        assertEquals(100.0, response.getAmount());
+        assertEquals("Food", response.getCategory());
+
+        verify(expenseRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    void testGetExpense_NotFound() {
+        when(expenseRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ExpenseNotFoundException.class, () -> expenseService.getExpense(1L));
+
+        verify(expenseRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    void testGetAllExpenses_Success() throws ExpenseNotFoundException {
+        List<Expense> expenses = Arrays.asList(expense);
+        when(expenseRepository.findAll()).thenReturn(expenses);
+
+        List<ExpenseResponse> responses = expenseService.getAllExpenses();
+
+        assertNotNull(responses);
+        assertEquals(1, responses.size());
+
+        verify(expenseRepository, times(1)).findAll();
+    }
+
+    @Test
+    void testUpdateExpense_Success() throws ExpenseNotUpdated, ExpenseNotFoundException, GetUserException {
+        when(expenseRepository.findById(1L)).thenReturn(Optional.of(expense));
+        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(user);
+        when(categoryUtils.getCategoryByName(expenseRequest.getCategory())).thenReturn(category);
+
+        boolean updated = expenseService.updateExpense(expenseRequest, 1L);
 
         assertTrue(updated);
-        verify(expenseRepositoryImpl, times(1)).updateExpense(expenseRequest, 1L);
+        verify(expenseRepository, times(1)).save(any(Expense.class));
     }
 
-    @DisplayName("deleteExpense should return true when Expense is deleted successfully")
     @Test
-    void deleteExpense_ShouldReturnTrue_WhenExpenseIsDeletedSuccessfully() throws ExpenseNotDeleted {
-        when(expenseRepositoryImpl.deleteExpense(1L)).thenReturn(true);
+    void testDeleteExpense_Success() throws ExpenseNotDeleted {
+        doNothing().when(expenseRepository).deleteById(1L);
 
-        boolean deleted = expenseServiceImpl.deleteExpense(1L);
+        boolean deleted = expenseService.deleteExpense(1L);
 
         assertTrue(deleted);
-        verify(expenseRepositoryImpl, times(1)).deleteExpense(1L);
-    }
-
-    @DisplayName("addExpense should throw Exception when this method fails")
-    @Test
-    void addExpense_ShouldThrowException_WhenRepositoryFails() throws ExpenseNotAdded {
-        when(expenseRepositoryImpl.addExpense(expenseRequest)).thenThrow(new ExpenseNotAdded("Error adding expense"));
-
-        ExpenseNotAdded exception = assertThrows(ExpenseNotAdded.class, () -> {
-            expenseServiceImpl.addExpense(expenseRequest);
-        });
-
-        assertEquals("Error adding expense", exception.getMessage());
-
-        verify(expenseRepositoryImpl, times(1)).addExpense(expenseRequest);
-    }
-
-    @DisplayName("getExpense should throw Exception when can not found Expense")
-    @Test
-    void getExpense_ShouldThrowException_WhenExpenseNotFound() throws ExpenseNotFoundException {
-        when(expenseRepositoryImpl.getExpense(1L)).thenThrow(new ExpenseNotFoundException("Expense not found"));
-
-        ExpenseNotFoundException exception = assertThrows(ExpenseNotFoundException.class, () -> {
-            expenseServiceImpl.getExpense(1L);
-        });
-
-        assertEquals("Expense not found", exception.getMessage());
-
-        verify(expenseRepositoryImpl, times(1)).getExpense(1L);
-    }
-
-    @DisplayName("updateExpense should throw Exception when update fails")
-    @Test
-    void updateExpense_ShouldThrowException_WhenUpdateFails() throws ExpenseNotUpdated {
-        when(expenseRepositoryImpl.updateExpense(expenseRequest, 1L)).thenThrow(new ExpenseNotUpdated("Update failed"));
-
-        ExpenseNotUpdated exception = assertThrows(ExpenseNotUpdated.class, () -> {
-            expenseServiceImpl.updateExpense(expenseRequest, 1L);
-        });
-
-        assertEquals("Update failed", exception.getMessage());
-
-        verify(expenseRepositoryImpl, times(1)).updateExpense(expenseRequest, 1L);
-    }
-
-    @DisplayName("deleteExpense should throw Exception when delete fails")
-    @Test
-    void deleteExpense_ShouldThrowException_WhenDeleteFails() throws ExpenseNotDeleted {
-        when(expenseRepositoryImpl.deleteExpense(1L)).thenThrow(new ExpenseNotDeleted("Delete failed"));
-
-        ExpenseNotDeleted exception = assertThrows(ExpenseNotDeleted.class, () -> {
-            expenseServiceImpl.deleteExpense(1L);
-        });
-
-        assertEquals("Delete failed", exception.getMessage());
-
-        verify(expenseRepositoryImpl, times(1)).deleteExpense(1L);
+        verify(expenseRepository, times(1)).deleteById(1L);
     }
 }

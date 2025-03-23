@@ -5,7 +5,7 @@ import com.henry.expensetracker.controller.model.response.CategoryResponse;
 import com.henry.expensetracker.entity.Category;
 import com.henry.expensetracker.exception.AddCategoryException;
 import com.henry.expensetracker.exception.GetCategoryException;
-import com.henry.expensetracker.repository.impl.CategoryRepositoryImpl;
+import com.henry.expensetracker.repository.CategoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,92 +24,68 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceImplTest {
     @Mock
-    private CategoryRepositoryImpl categoryRepositoryImpl;
+    private CategoryRepository categoryRepository;
 
     @InjectMocks
-    private CategoryServiceImpl categoryServiceImpl;
+    private CategoryServiceImpl categoryService;
 
     private CategoryRequest categoryRequest;
     private Category category;
-    private CategoryResponse categoryResponse;
 
     @BeforeEach
     void setUp() {
-        categoryRequest = new CategoryRequest("Electronics", "Devices and gadgets");
-        category = new Category(1L, "Electronics", "Devices and gadgets");
-        categoryResponse = new CategoryResponse("Electronics");
+        categoryRequest = new CategoryRequest("Food", "Expenses for meals and groceries");
+        category = new Category(1L, "Food", "Expenses for meals and groceries");
     }
 
-    @DisplayName("addCategory should return CategoryResponse when Category is added successfully")
     @Test
-    void addCategory_ShouldReturnCategoryResponse_WhenCategoryIsAddedSuccessfully() throws AddCategoryException {
-        when(categoryRepositoryImpl.addCategory(categoryRequest)).thenReturn(categoryResponse);
+    void testAddCategory_Success() throws AddCategoryException {
+        when(categoryRepository.save(any(Category.class))).thenReturn(category);
 
-        CategoryResponse response = categoryServiceImpl.addCategory(categoryRequest);
+        CategoryResponse response = categoryService.addCategory(categoryRequest);
 
         assertNotNull(response);
-        assertEquals("Electronics", response.getName());
+        assertEquals("Food", response.getName());
 
-        verify(categoryRepositoryImpl, times(1)).addCategory(categoryRequest);
+        verify(categoryRepository, times(1)).save(any(Category.class));
     }
 
-    @DisplayName("getAllCategories should return CategoryResponses List when categories exist")
     @Test
-    void getAllCategories_ShouldReturnCategoryResponsesList_WhenCategoriesExist() throws GetCategoryException {
+    void testAddCategory_Exception() {
+        doThrow(new RuntimeException("Error al guardar categoría")).when(categoryRepository).save(any(Category.class));
+
+        assertThrows(RuntimeException.class, () -> categoryService.addCategory(categoryRequest));
+
+        verify(categoryRepository, times(1)).save(any(Category.class));
+    }
+
+    @Test
+    void testGetAllCategories_Success() throws GetCategoryException {
         List<Category> categories = Arrays.asList(
-                new Category(1L, "Electronics", "Devices and gadgets"),
-                new Category(2L, "Books", "Educational and entertainment books")
+                new Category(1L, "Food", "Expenses for meals and groceries"),
+                new Category(2L, "Transport", "Expenses for commuting and travel")
         );
+        when(categoryRepository.findAll()).thenReturn(categories);
 
-        when(categoryRepositoryImpl.getAllCategories()).thenReturn(categories);
-
-        List<CategoryResponse> responses = categoryServiceImpl.getAllCategories();
+        List<CategoryResponse> responses = categoryService.getAllCategories();
 
         assertNotNull(responses);
         assertEquals(2, responses.size());
-        assertEquals("Electronics", responses.get(0).getName());
-        assertEquals("Books", responses.get(1).getName());
-        verify(categoryRepositoryImpl, times(1)).getAllCategories();
+        assertEquals("Food", responses.get(0).getName());
+        assertEquals("Transport", responses.get(1).getName());
+
+        verify(categoryRepository, times(1)).findAll();
     }
 
-    @DisplayName("getCategoryName should return Category name when Id is valid")
     @Test
-    void getCategoryName_ShouldReturnCategoryName_WhenIdIsValid() throws GetCategoryException {
-        when(categoryRepositoryImpl.getCategoryName(1)).thenReturn("Electronics");
+    void testGetAllCategories_EmptyList() throws GetCategoryException {
+        when(categoryRepository.findAll()).thenReturn(List.of());
 
-        String categoryName = categoryServiceImpl.getCategoryName(1L);
+        List<CategoryResponse> responses = categoryService.getAllCategories();
 
-        assertNotNull(categoryName);
-        assertEquals("Electronics", categoryName);
+        assertNotNull(responses);
+        assertTrue(responses.isEmpty());
 
-        verify(categoryRepositoryImpl, times(1)).getCategoryName(1);
-    }
-
-    @DisplayName("addCategory should throw Exception when this method fails")
-    @Test
-    void addCategory_ShouldThrowException_WhenRepositoryFails() throws AddCategoryException {
-        when(categoryRepositoryImpl.addCategory(categoryRequest)).thenThrow(new AddCategoryException("Error adding category"));
-
-        AddCategoryException exception = assertThrows(AddCategoryException.class, () -> {
-            categoryServiceImpl.addCategory(categoryRequest);
-        });
-
-        assertEquals("Error adding category", exception.getMessage());
-
-        verify(categoryRepositoryImpl, times(1)).addCategory(categoryRequest);
-    }
-
-    @DisplayName("getCategoryName should throw Exception when this method fails")
-    @Test
-    void getCategoryName_ShouldThrowException_WhenRepositoryFails() throws GetCategoryException {
-        when(categoryRepositoryImpl.getCategoryName(1)).thenThrow(new GetCategoryException("Category not found"));
-
-        GetCategoryException exception = assertThrows(GetCategoryException.class, () -> {
-            categoryServiceImpl.getCategoryName(1L);
-        });
-
-        assertEquals("Category not found", exception.getMessage());
-
-        verify(categoryRepositoryImpl, times(1)).getCategoryName(1);
+        verify(categoryRepository, times(1)).findAll();
     }
 }
