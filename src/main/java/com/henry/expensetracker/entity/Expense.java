@@ -1,15 +1,14 @@
 package com.henry.expensetracker.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name = "expense")
 public class Expense {
@@ -24,4 +23,13 @@ public class Expense {
     private LocalDate date;
     private String category;
     private String description;
+
+    public Expense(Long idUser, Long idCategory, double amount, LocalDate date, String category, String description) {
+        this.idUser = idUser;
+        this.idCategory = idCategory;
+        this.amount = amount;
+        this.date = date;
+        this.category = category;
+        this.description = description;
+    }
 }
