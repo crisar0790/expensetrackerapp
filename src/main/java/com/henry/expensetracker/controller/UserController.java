@@ -19,7 +19,7 @@ public class UserController {
     private UserServiceImpl userService;
 
     /**
-     * Endpoint para agregar un nuevo usuario.
+     * Endpoint add a new user.
      */
     @PostMapping
     public ResponseEntity<?> addUser(@RequestBody UserRequest userRequest) {

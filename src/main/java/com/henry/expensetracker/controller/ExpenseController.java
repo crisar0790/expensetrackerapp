@@ -2,10 +2,7 @@ package com.henry.expensetracker.controller;
 
 import com.henry.expensetracker.controller.model.request.ExpenseRequest;
 import com.henry.expensetracker.controller.model.response.ExpenseResponse;
-import com.henry.expensetracker.exception.ExpenseNotAdded;
-import com.henry.expensetracker.exception.ExpenseNotDeleted;
-import com.henry.expensetracker.exception.ExpenseNotFoundException;
-import com.henry.expensetracker.exception.ExpenseNotUpdated;
+import com.henry.expensetracker.exception.*;
 import com.henry.expensetracker.entity.Expense;
 import com.henry.expensetracker.service.impl.ExpenseServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -24,8 +21,8 @@ public class ExpenseController {
     private ExpenseServiceImpl expenseService;
 
     /**
-     * Endpoint para agregar un nuevo gasto.
-     * Se espera que la fecha se envíe en formato ISO (yyyy-MM-dd).
+     * Endpoint to add a new expense.
+     * date format (yyyy-MM-dd).
      */
     @PostMapping
     public ResponseEntity<?> addExpense(
@@ -37,11 +34,13 @@ public class ExpenseController {
         } catch (ExpenseNotAdded e) {
             log.error("An error occurred while trying to save the new expense: {}", e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
+        } catch (GetUserException e) {
+            throw new RuntimeException(e);
         }
     }
 
     /**
-     * Endpoint para listar los gastos de un usuario.
+     * Endpoint to get user expenses.
      */
     @GetMapping("/user/{email}")
     public ResponseEntity<?> listExpensesByUser(@PathVariable String email) {
@@ -53,11 +52,13 @@ public class ExpenseController {
         } catch (ExpenseNotFoundException e) {
             log.error("An error occurred while trying to get all expenses: {}", e.getMessage());
             return ResponseEntity.status(404).body(e.getMessage());
+        } catch (GetUserException e) {
+            throw new RuntimeException(e);
         }
     }
 
     /**
-     * Endpoint para obtener un gasto por su ID.
+     * Endpoint to get expense by ID.
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getExpense(@PathVariable Long id) {
@@ -73,7 +74,7 @@ public class ExpenseController {
     }
 
     /**
-     * Endpoint para obtener todos los gastos registrados.
+     * Endpoint to get all expenses.
      */
     @GetMapping
     public ResponseEntity<?> getAllExpenses() {
@@ -89,8 +90,8 @@ public class ExpenseController {
     }
 
     /**
-     * Endpoint para actualizar un gasto.
-     * Se espera que la fecha se envíe en formato ISO (yyyy-MM-dd).
+     * Endpoint to update expense.
+     * date format (yyyy-MM-dd).
      */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateExpense(
@@ -115,7 +116,7 @@ public class ExpenseController {
     }
 
     /**
-     * Endpoint para eliminar un gasto.
+     * Endpoint to delete expense.
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteExpense(@PathVariable Long id) {

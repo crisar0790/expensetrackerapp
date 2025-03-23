@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import com.henry.expensetracker.exception.AddCategoryException;
 import com.henry.expensetracker.exception.GetCategoryException;
-import com.henry.expensetracker.entity.Category;
 import com.henry.expensetracker.service.impl.CategoryServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +20,7 @@ public class CategoryController {
     private CategoryServiceImpl categoryService;
 
     /**
-     * Endpoint para agregar una nueva categoría.
+     * Endpoint to add a new category.
      */
     @PostMapping
     public ResponseEntity<?> addCategory(@RequestBody CategoryRequest category) {
@@ -36,7 +35,7 @@ public class CategoryController {
     }
 
     /**
-     * Endpoint para obtener todas las categorías.
+     * Endpoint get all categories.
      */
     @GetMapping
     public ResponseEntity<?> getAllCategories() {
@@ -48,22 +47,6 @@ public class CategoryController {
         } catch (GetCategoryException e) {
             log.error("An error occurred while trying to get all categories: {}", e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
-        }
-    }
-
-    /**
-     * Endpoint para obtener el nombre de una categoría a partir de su ID.
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getCategoryName(@PathVariable Long id) {
-        try {
-            log.info("Getting category: {}", id);
-            log.warn("The category with that id might not exist");
-            String categoryName = categoryService.getCategoryName(id);
-            return ResponseEntity.ok(categoryName);
-        } catch (GetCategoryException e) {
-            log.error("An error occurred while trying to get that category: {}", e.getMessage());
-            return ResponseEntity.status(404).body(e.getMessage());
         }
     }
 }
