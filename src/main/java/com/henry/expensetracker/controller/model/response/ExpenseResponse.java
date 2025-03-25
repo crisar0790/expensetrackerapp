@@ -11,6 +11,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ExpenseResponse {
     private Long id;
+    private String userName;
     private double amount;
     private LocalDate date;
     private String category;
