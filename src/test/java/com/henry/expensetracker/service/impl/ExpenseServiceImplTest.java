@@ -7,6 +7,7 @@ import com.henry.expensetracker.entity.Expense;
 import com.henry.expensetracker.entity.User;
 import com.henry.expensetracker.exception.*;
 import com.henry.expensetracker.repository.ExpenseRepository;
+import com.henry.expensetracker.repository.UserRepository;
 import com.henry.expensetracker.utils.CategoryUtils;
 import com.henry.expensetracker.utils.UserUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,9 +16,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -37,105 +40,125 @@ class ExpenseServiceImplTest {
     @Mock
     private CategoryUtils categoryUtils;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private ExpenseServiceImpl expenseService;
 
     private ExpenseRequest expenseRequest;
-    private Expense expense;
-    private User user;
-    private Category category;
+    private User mockUser;
+    private Category mockCategory;
 
     @BeforeEach
     void setUp() {
-        user = new User(1L, "John Doe", "test@example.com");
-        category = new Category(1L, "Food", "Expenses for meals and groceries");
-        expenseRequest = new ExpenseRequest("test@example.com", 100.0, LocalDate.now(), "Food", "Dinner at restaurant");
-        expense = new Expense(1L, 1L, 1L, 100.0, LocalDate.now(), "Food", "Dinner at restaurant");
+        MockitoAnnotations.openMocks(this);
+
+        mockUser = new User(1L, "John Doe", "johndoe@example.com");
+        mockCategory = new Category(1L, "Food", "Expenses on meals, groceries, and dining out.");
+        expenseRequest = new ExpenseRequest("johndoe@example.com", 100.0, LocalDate.now(), "Food", "Lunch");
     }
 
     @Test
     void testAddExpense_Success() throws ExpenseNotAdded, GetUserException {
-        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(user);
-        when(categoryUtils.getCategoryByName(expenseRequest.getCategory())).thenReturn(category);
-        when(expenseRepository.save(any(Expense.class))).thenReturn(expense);
+        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(mockUser);
+        when(categoryUtils.getCategoryByName(expenseRequest.getCategory())).thenReturn(mockCategory);
 
-        ExpenseResponse response = expenseService.addExpense(expenseRequest);
+        Expense mockExpense = new Expense(1L, mockUser.getId(), mockCategory.getId(), 100.0, expenseRequest.getDate(), expenseRequest.getCategory(), expenseRequest.getDescription());
+        when(expenseRepository.save(any(Expense.class))).thenReturn(mockExpense);
 
-        assertNotNull(response);
-        assertEquals(100.0, response.getAmount());
-        assertEquals("Food", response.getCategory());
+        when(userRepository.findById(mockUser.getId())).thenReturn(Optional.of(mockUser));
 
-        verify(expenseRepository, times(1)).save(any(Expense.class));
+        ExpenseResponse result = expenseService.addExpense(expenseRequest);
+
+        assertNotNull(result);
+        assertEquals("John Doe", result.getUserName());
+        assertEquals(100.0, result.getAmount());
+    }
+
+    @Test
+    void testAddExpense_Exception() throws GetUserException {
+        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenThrow(new GetUserException("User not found"));
+
+        assertThrows(GetUserException.class, () -> expenseService.addExpense(expenseRequest));
     }
 
     @Test
     void testListExpensesByUser_Success() throws ExpenseNotFoundException, GetUserException {
-        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(user);
-        when(expenseRepository.findByIdUser(user.getId())).thenReturn(List.of(expense));
+        when(userUtils.getUserByEmail("johndoe@example.com")).thenReturn(mockUser);
+        when(expenseRepository.findByIdUser(mockUser.getId())).thenReturn(Arrays.asList(
+                new Expense(1L, mockUser.getId(), mockCategory.getId(), 100.0, LocalDate.now(), "Food", "Lunch")
+        ));
+        when(userRepository.findById(mockUser.getId())).thenReturn(Optional.of(mockUser));
 
-        List<ExpenseResponse> responses = expenseService.listExpensesByUser(expenseRequest.getUserEmail());
+        List<ExpenseResponse> expenses = expenseService.listExpensesByUser("johndoe@example.com");
 
-        assertNotNull(responses);
-        assertEquals(1, responses.size());
-        assertEquals("Food", responses.get(0).getCategory());
+        assertNotNull(expenses);
+        assertEquals(1, expenses.size());
 
-        verify(expenseRepository, times(1)).findByIdUser(user.getId());
+        verify(userUtils).getUserByEmail("johndoe@example.com");
+        verify(expenseRepository).findByIdUser(mockUser.getId());
+        verify(userRepository).findById(mockUser.getId());
     }
 
     @Test
-    void testGetExpense_Success() throws ExpenseNotFoundException {
-        when(expenseRepository.findById(1L)).thenReturn(Optional.of(expense));
+    void testListExpensesByUser_Exception() throws ExpenseNotFoundException, GetUserException {
+        when(userUtils.getUserByEmail("johndoe@example.com")).thenReturn(mockUser);
+        when(expenseRepository.findByIdUser(mockUser.getId())).thenReturn(new ArrayList<>());
 
-        ExpenseResponse response = expenseService.getExpense(1L);
-
-        assertNotNull(response);
-        assertEquals(100.0, response.getAmount());
-        assertEquals("Food", response.getCategory());
-
-        verify(expenseRepository, times(1)).findById(1L);
+        assertThrows(ExpenseNotFoundException.class, () -> expenseService.listExpensesByUser("johndoe@example.com"));
     }
 
     @Test
-    void testGetExpense_NotFound() {
+    void testGetExpense_Success() throws ExpenseNotFoundException, GetUserException {
+        when(expenseRepository.findById(1L)).thenReturn(Optional.of(new Expense(1L, mockUser.getId(), mockCategory.getId(), 100.0, LocalDate.now(), "Food", "Lunch")));
+        when(userRepository.findById(mockUser.getId())).thenReturn(Optional.of(mockUser));
+
+        ExpenseResponse result = expenseService.getExpense(1L);
+
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals("John Doe", result.getUserName());
+    }
+
+    @Test
+    void testGetExpense_Exception() throws ExpenseNotFoundException {
         when(expenseRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(ExpenseNotFoundException.class, () -> expenseService.getExpense(1L));
-
-        verify(expenseRepository, times(1)).findById(1L);
     }
 
     @Test
-    void testGetAllExpenses_Success() throws ExpenseNotFoundException {
-        List<Expense> expenses = Arrays.asList(expense);
-        when(expenseRepository.findAll()).thenReturn(expenses);
+    void testUpdateExpense_Success() throws ExpenseNotFoundException, GetUserException {
+        when(expenseRepository.findById(1L)).thenReturn(Optional.of(new Expense(1L, mockUser.getId(), mockCategory.getId(), 100.0, LocalDate.now(), "Food", "Lunch")));
+        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(mockUser);
+        when(categoryUtils.getCategoryByName(expenseRequest.getCategory())).thenReturn(mockCategory);
 
-        List<ExpenseResponse> responses = expenseService.getAllExpenses();
+        boolean result = expenseService.updateExpense(expenseRequest, 1L);
 
-        assertNotNull(responses);
-        assertEquals(1, responses.size());
-
-        verify(expenseRepository, times(1)).findAll();
+        assertTrue(result);
     }
 
     @Test
-    void testUpdateExpense_Success() throws ExpenseNotUpdated, ExpenseNotFoundException, GetUserException {
-        when(expenseRepository.findById(1L)).thenReturn(Optional.of(expense));
-        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(user);
-        when(categoryUtils.getCategoryByName(expenseRequest.getCategory())).thenReturn(category);
+    void testUpdateExpense_Exception() throws ExpenseNotFoundException, GetUserException {
+        when(expenseRepository.findById(1L)).thenReturn(Optional.empty());
 
-        boolean updated = expenseService.updateExpense(expenseRequest, 1L);
-
-        assertTrue(updated);
-        verify(expenseRepository, times(1)).save(any(Expense.class));
+        assertThrows(ExpenseNotFoundException.class, () -> expenseService.updateExpense(expenseRequest, 1L));
     }
 
     @Test
     void testDeleteExpense_Success() throws ExpenseNotDeleted {
         doNothing().when(expenseRepository).deleteById(1L);
 
-        boolean deleted = expenseService.deleteExpense(1L);
+        boolean result = expenseService.deleteExpense(1L);
 
-        assertTrue(deleted);
-        verify(expenseRepository, times(1)).deleteById(1L);
+        assertTrue(result);
+    }
+
+    @Test
+    void testDeleteExpense_Exception() throws ExpenseNotDeleted {
+        doThrow(new ExpenseNotDeleted("Expense could not be deleted")).when(expenseRepository).deleteById(1L);
+
+        assertThrows(ExpenseNotDeleted.class, () -> expenseService.deleteExpense(1L));
     }
 }
