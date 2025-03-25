@@ -70,6 +70,8 @@ public class ExpenseController {
         } catch (ExpenseNotFoundException e) {
             log.error("An error occurred while trying to get that expense: {}", e.getMessage());
             return ResponseEntity.status(404).body(e.getMessage());
+        } catch (GetUserException e) {
+            throw new RuntimeException("Error obteniendo el usuario", e);
         }
     }
 
