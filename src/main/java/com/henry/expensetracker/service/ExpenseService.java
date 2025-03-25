@@ -13,7 +13,7 @@ public interface ExpenseService {
 
     List<ExpenseResponse> listExpensesByUser(String email) throws ExpenseNotFoundException, GetUserException;
 
-    ExpenseResponse getExpense(Long id) throws ExpenseNotFoundException;
+    ExpenseResponse getExpense(Long id) throws ExpenseNotFoundException, GetUserException;
 
     List<ExpenseResponse> getAllExpenses() throws ExpenseNotFoundException;
 

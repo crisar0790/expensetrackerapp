@@ -7,12 +7,14 @@ import com.henry.expensetracker.entity.User;
 import com.henry.expensetracker.exception.*;
 import com.henry.expensetracker.entity.Expense;
 import com.henry.expensetracker.repository.ExpenseRepository;
+import com.henry.expensetracker.repository.UserRepository;
 import com.henry.expensetracker.service.ExpenseService;
 import com.henry.expensetracker.utils.CategoryUtils;
 import com.henry.expensetracker.utils.UserUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,8 @@ public class ExpenseServiceImpl implements ExpenseService {
     private UserUtils userUtils;
     @Autowired
     private CategoryUtils categoryUtils;
+    @Autowired
+    private UserRepository userRepository;
 
     public ExpenseResponse addExpense(ExpenseRequest expenseRequest) throws ExpenseNotAdded, GetUserException {
         Expense expense = mapToExpense(expenseRequest);
@@ -34,12 +38,21 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     public List<ExpenseResponse> listExpensesByUser(String email) throws ExpenseNotFoundException, GetUserException {
         User user = userUtils.getUserByEmail(email);
-        return  expenseRepository.findByIdUser(user.getId()).stream()
-                .map(this::mapToExpenseResponse)
-                .collect(Collectors.toList());
+        List<ExpenseResponse> expenseResponses = new ArrayList<>();
+
+        List<Expense> expenses = expenseRepository.findByIdUser(user.getId());
+        if (expenses == null || expenses.isEmpty()) {
+            throw new ExpenseNotFoundException("No expenses found for user with email: " + email);
+        }
+
+        for (Expense expense : expenses) {
+            expenseResponses.add(mapToExpenseResponse(expense));
+        }
+
+        return expenseResponses;
     }
 
-    public ExpenseResponse getExpense(Long id) throws ExpenseNotFoundException {
+    public ExpenseResponse getExpense(Long id) throws ExpenseNotFoundException, GetUserException {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ExpenseNotFoundException("Expense with ID: " + id + " did not found"));
 
@@ -47,9 +60,22 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     public List<ExpenseResponse> getAllExpenses() throws ExpenseNotFoundException {
-        return expenseRepository.findAll().stream()
-                .map(this::mapToExpenseResponse)
-                .collect(Collectors.toList());
+        try {
+            List<ExpenseResponse> expenseResponses = new ArrayList<>();
+            List<Expense> expenses = expenseRepository.findAll();
+
+            if (expenses.isEmpty()) {
+                throw new ExpenseNotFoundException("No expenses found");
+            }
+
+            for (Expense expense : expenses) {
+                expenseResponses.add(mapToExpenseResponse(expense));
+            }
+
+            return expenseResponses;
+        } catch (GetUserException e) {
+            throw new RuntimeException("Error getting user");
+        }
     }
 
     public boolean updateExpense(ExpenseRequest expenseRequest, Long id) throws ExpenseNotUpdated, ExpenseNotFoundException, GetUserException {
@@ -88,9 +114,12 @@ public class ExpenseServiceImpl implements ExpenseService {
         );
     }
 
-    private ExpenseResponse mapToExpenseResponse(Expense expense) {
+    private ExpenseResponse mapToExpenseResponse(Expense expense) throws GetUserException {
+        User user = userRepository.findById(expense.getIdUser())
+                .orElseThrow(() -> new GetUserException("User with ID: " + expense.getIdUser() + " did not found"));
         return new ExpenseResponse(
                 expense.getId(),
+                user.getName(),
                 expense.getAmount(),
                 expense.getDate(),
                 expense.getCategory()
