@@ -9,38 +9,42 @@ import com.henry.expensetracker.entity.Expense;
 import com.henry.expensetracker.repository.ExpenseRepository;
 import com.henry.expensetracker.repository.UserRepository;
 import com.henry.expensetracker.service.ExpenseService;
-import com.henry.expensetracker.utils.CategoryUtils;
-import com.henry.expensetracker.utils.UserUtils;
+import com.henry.expensetracker.utils.impl.CategoryUtilsImpl;
+import com.henry.expensetracker.utils.impl.UserUtilsImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ExpenseServiceImpl implements ExpenseService {
     @Autowired
     private ExpenseRepository expenseRepository;
     @Autowired
-    private UserUtils userUtils;
+    private UserUtilsImpl userUtilsImpl;
     @Autowired
-    private CategoryUtils categoryUtils;
+    private CategoryUtilsImpl categoryUtilsImpl;
     @Autowired
     private UserRepository userRepository;
 
     public ExpenseResponse addExpense(ExpenseRequest expenseRequest) throws ExpenseNotAdded, GetUserException {
         Expense expense = mapToExpense(expenseRequest);
         expenseRepository.save(expense);
+        log.info("New expense added successfully");
 
         return mapToExpenseResponse(expense);
     }
 
     public List<ExpenseResponse> listExpensesByUser(String email) throws ExpenseNotFoundException, GetUserException {
-        User user = userUtils.getUserByEmail(email);
+        User user = userUtilsImpl.getUserByEmail(email);
         List<ExpenseResponse> expenseResponses = new ArrayList<>();
 
         List<Expense> expenses = expenseRepository.findByIdUser(user.getId());
+        log.info("All expenses were obtained");
+
         if (expenses == null || expenses.isEmpty()) {
             throw new ExpenseNotFoundException("No expenses found for user with email: " + email);
         }
@@ -55,6 +59,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     public ExpenseResponse getExpense(Long id) throws ExpenseNotFoundException, GetUserException {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ExpenseNotFoundException("Expense with ID: " + id + " did not found"));
+        log.info("Expenses {} was obtained", id);
 
         return mapToExpenseResponse(expense);
     }
@@ -63,6 +68,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         try {
             List<ExpenseResponse> expenseResponses = new ArrayList<>();
             List<Expense> expenses = expenseRepository.findAll();
+            log.info("All expenses were obtained");
 
             if (expenses.isEmpty()) {
                 throw new ExpenseNotFoundException("No expenses found");
@@ -74,6 +80,7 @@ public class ExpenseServiceImpl implements ExpenseService {
 
             return expenseResponses;
         } catch (GetUserException e) {
+            log.error("Error getting expenses by user");
             throw new RuntimeException("Error getting user");
         }
     }
@@ -91,19 +98,21 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setDescription(expenseToUpdate.getDescription());
 
         expenseRepository.save(expense);
+        log.info("Expense updated successfully");
 
         return true;
     }
 
     public boolean deleteExpense(Long id) throws ExpenseNotDeleted {
         expenseRepository.deleteById(id);
+        log.info("Expense deleted successfully");
 
         return true;
     }
 
-    private Expense mapToExpense(ExpenseRequest expenseRequest) throws GetUserException {
-        User user = userUtils.getUserByEmail(expenseRequest.getUserEmail());
-        Category category = categoryUtils.getCategoryByName(expenseRequest.getCategory());
+    private Expense mapToExpense(ExpenseRequest expenseRequest) throws GetUserException, GetCategoryException {
+        User user = userUtilsImpl.getUserByEmail(expenseRequest.getUserEmail());
+        Category category = categoryUtilsImpl.getCategoryByName(expenseRequest.getCategory());
         return new Expense(
                 user.getId(),
                 category.getId(),

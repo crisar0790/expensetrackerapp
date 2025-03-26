@@ -6,9 +6,11 @@ import com.henry.expensetracker.exception.AddUserException;
 import com.henry.expensetracker.entity.User;
 import com.henry.expensetracker.repository.UserRepository;
 import com.henry.expensetracker.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
     @Autowired
@@ -18,6 +20,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse addUser(UserRequest userRequest) throws AddUserException {
         User user = mapToUser(userRequest);
         userRepository.save(user);
+        log.info("New user created");
 
         return mapToUserResponse(user);
     }
