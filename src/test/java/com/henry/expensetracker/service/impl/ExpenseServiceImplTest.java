@@ -8,8 +8,8 @@ import com.henry.expensetracker.entity.User;
 import com.henry.expensetracker.exception.*;
 import com.henry.expensetracker.repository.ExpenseRepository;
 import com.henry.expensetracker.repository.UserRepository;
-import com.henry.expensetracker.utils.CategoryUtils;
-import com.henry.expensetracker.utils.UserUtils;
+import com.henry.expensetracker.utils.impl.CategoryUtilsImpl;
+import com.henry.expensetracker.utils.impl.UserUtilsImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,10 +35,10 @@ class ExpenseServiceImplTest {
     private ExpenseRepository expenseRepository;
 
     @Mock
-    private UserUtils userUtils;
+    private UserUtilsImpl userUtilsImpl;
 
     @Mock
-    private CategoryUtils categoryUtils;
+    private CategoryUtilsImpl categoryUtilsImpl;
 
     @Mock
     private UserRepository userRepository;
@@ -60,9 +60,9 @@ class ExpenseServiceImplTest {
     }
 
     @Test
-    void testAddExpense_Success() throws ExpenseNotAdded, GetUserException {
-        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(mockUser);
-        when(categoryUtils.getCategoryByName(expenseRequest.getCategory())).thenReturn(mockCategory);
+    void testAddExpense_Success() throws ExpenseNotAdded, GetUserException, GetCategoryException {
+        when(userUtilsImpl.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(mockUser);
+        when(categoryUtilsImpl.getCategoryByName(expenseRequest.getCategory())).thenReturn(mockCategory);
 
         Expense mockExpense = new Expense(1L, mockUser.getId(), mockCategory.getId(), 100.0, expenseRequest.getDate(), expenseRequest.getCategory(), expenseRequest.getDescription());
         when(expenseRepository.save(any(Expense.class))).thenReturn(mockExpense);
@@ -78,14 +78,14 @@ class ExpenseServiceImplTest {
 
     @Test
     void testAddExpense_Exception() throws GetUserException {
-        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenThrow(new GetUserException("User not found"));
+        when(userUtilsImpl.getUserByEmail(expenseRequest.getUserEmail())).thenThrow(new GetUserException("User not found"));
 
         assertThrows(GetUserException.class, () -> expenseService.addExpense(expenseRequest));
     }
 
     @Test
     void testListExpensesByUser_Success() throws ExpenseNotFoundException, GetUserException {
-        when(userUtils.getUserByEmail("johndoe@example.com")).thenReturn(mockUser);
+        when(userUtilsImpl.getUserByEmail("johndoe@example.com")).thenReturn(mockUser);
         when(expenseRepository.findByIdUser(mockUser.getId())).thenReturn(Arrays.asList(
                 new Expense(1L, mockUser.getId(), mockCategory.getId(), 100.0, LocalDate.now(), "Food", "Lunch")
         ));
@@ -96,14 +96,14 @@ class ExpenseServiceImplTest {
         assertNotNull(expenses);
         assertEquals(1, expenses.size());
 
-        verify(userUtils).getUserByEmail("johndoe@example.com");
+        verify(userUtilsImpl).getUserByEmail("johndoe@example.com");
         verify(expenseRepository).findByIdUser(mockUser.getId());
         verify(userRepository).findById(mockUser.getId());
     }
 
     @Test
     void testListExpensesByUser_Exception() throws ExpenseNotFoundException, GetUserException {
-        when(userUtils.getUserByEmail("johndoe@example.com")).thenReturn(mockUser);
+        when(userUtilsImpl.getUserByEmail("johndoe@example.com")).thenReturn(mockUser);
         when(expenseRepository.findByIdUser(mockUser.getId())).thenReturn(new ArrayList<>());
 
         assertThrows(ExpenseNotFoundException.class, () -> expenseService.listExpensesByUser("johndoe@example.com"));
@@ -129,10 +129,10 @@ class ExpenseServiceImplTest {
     }
 
     @Test
-    void testUpdateExpense_Success() throws ExpenseNotFoundException, GetUserException {
+    void testUpdateExpense_Success() throws ExpenseNotFoundException, GetUserException, GetCategoryException {
         when(expenseRepository.findById(1L)).thenReturn(Optional.of(new Expense(1L, mockUser.getId(), mockCategory.getId(), 100.0, LocalDate.now(), "Food", "Lunch")));
-        when(userUtils.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(mockUser);
-        when(categoryUtils.getCategoryByName(expenseRequest.getCategory())).thenReturn(mockCategory);
+        when(userUtilsImpl.getUserByEmail(expenseRequest.getUserEmail())).thenReturn(mockUser);
+        when(categoryUtilsImpl.getCategoryByName(expenseRequest.getCategory())).thenReturn(mockCategory);
 
         boolean result = expenseService.updateExpense(expenseRequest, 1L);
 
