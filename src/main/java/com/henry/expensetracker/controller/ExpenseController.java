@@ -3,7 +3,6 @@ package com.henry.expensetracker.controller;
 import com.henry.expensetracker.controller.model.request.ExpenseRequest;
 import com.henry.expensetracker.controller.model.response.ExpenseResponse;
 import com.henry.expensetracker.exception.*;
-import com.henry.expensetracker.entity.Expense;
 import com.henry.expensetracker.service.impl.ExpenseServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
