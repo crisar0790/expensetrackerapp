@@ -1,11 +1,10 @@
 package com.henry.expensetracker.service;
 
 import com.henry.expensetracker.controller.model.request.ExpenseRequest;
+import com.henry.expensetracker.controller.model.response.ExpenseCategoryByUserResponse;
 import com.henry.expensetracker.controller.model.response.ExpenseResponse;
-import com.henry.expensetracker.entity.Expense;
 import com.henry.expensetracker.exception.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 public interface ExpenseService {
@@ -20,4 +19,8 @@ public interface ExpenseService {
     boolean updateExpense(ExpenseRequest expense, Long id) throws ExpenseNotUpdated, ExpenseNotFoundException, GetUserException;
 
     boolean deleteExpense(Long id) throws ExpenseNotDeleted;
+
+    Double getTotalExpenseByUser(String email) throws ExpenseNotFoundException, GetUserException;
+
+    List<ExpenseCategoryByUserResponse> getTotalExpensesByUserGroupedByCategory(String email) throws ExpenseNotFoundException, GetUserException;
 }

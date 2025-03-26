@@ -1,11 +1,13 @@
 package com.henry.expensetracker.controller;
 
 import com.henry.expensetracker.controller.model.request.ExpenseRequest;
+import com.henry.expensetracker.controller.model.response.ExpenseCategoryByUserResponse;
 import com.henry.expensetracker.controller.model.response.ExpenseResponse;
 import com.henry.expensetracker.exception.*;
 import com.henry.expensetracker.service.impl.ExpenseServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -133,6 +135,30 @@ public class ExpenseController {
         } catch (ExpenseNotDeleted e) {
             log.error("An error occurred while trying to delete the expense: {}", e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
+    /**
+     * Endpoint to get total user expense.
+     */
+    @GetMapping("/user/total/{email}")
+    public Double getTotalExpenseByUser(@PathVariable String email) throws ExpenseNotFoundException, GetUserException {
+        log.info("Getting total expenses for user: {}", email);
+        return expenseService.getTotalExpenseByUser(email);
+    }
+
+    /**
+     * Endpoint to get total user expenses grouped by category.
+     */
+    @GetMapping("/user/total-by-category/{email}")
+    public ResponseEntity<?> getTotalExpensesByUserGroupedByCategory(@PathVariable String email) {
+        try {
+            log.info("Getting total expenses grouped by category for user: {}", email);
+            List<ExpenseCategoryByUserResponse> expenses = expenseService.getTotalExpensesByUserGroupedByCategory(email);
+            return ResponseEntity.ok(expenses);
+        } catch (ExpenseNotFoundException | GetUserException e) {
+            log.error("Error getting total expenses by category: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 }

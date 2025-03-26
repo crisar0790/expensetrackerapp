@@ -1,6 +1,7 @@
 package com.henry.expensetracker.service.impl;
 
 import com.henry.expensetracker.controller.model.request.ExpenseRequest;
+import com.henry.expensetracker.controller.model.response.ExpenseCategoryByUserResponse;
 import com.henry.expensetracker.controller.model.response.ExpenseResponse;
 import com.henry.expensetracker.entity.Category;
 import com.henry.expensetracker.entity.User;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -30,6 +32,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Autowired
     private UserRepository userRepository;
 
+    @Override
     public ExpenseResponse addExpense(ExpenseRequest expenseRequest) throws ExpenseNotAdded, GetUserException {
         Expense expense = mapToExpense(expenseRequest);
         expenseRepository.save(expense);
@@ -38,6 +41,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         return mapToExpenseResponse(expense);
     }
 
+    @Override
     public List<ExpenseResponse> listExpensesByUser(String email) throws ExpenseNotFoundException, GetUserException {
         User user = userUtilsImpl.getUserByEmail(email);
         List<ExpenseResponse> expenseResponses = new ArrayList<>();
@@ -56,6 +60,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         return expenseResponses;
     }
 
+    @Override
     public ExpenseResponse getExpense(Long id) throws ExpenseNotFoundException, GetUserException {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ExpenseNotFoundException("Expense with ID: " + id + " did not found"));
@@ -64,6 +69,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         return mapToExpenseResponse(expense);
     }
 
+    @Override
     public List<ExpenseResponse> getAllExpenses() throws ExpenseNotFoundException {
         try {
             List<ExpenseResponse> expenseResponses = new ArrayList<>();
@@ -85,6 +91,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         }
     }
 
+    @Override
     public boolean updateExpense(ExpenseRequest expenseRequest, Long id) throws ExpenseNotUpdated, ExpenseNotFoundException, GetUserException {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ExpenseNotFoundException("Expense with ID: " + id + " did not found"));
@@ -103,11 +110,47 @@ public class ExpenseServiceImpl implements ExpenseService {
         return true;
     }
 
+    @Override
     public boolean deleteExpense(Long id) throws ExpenseNotDeleted {
         expenseRepository.deleteById(id);
         log.info("Expense deleted successfully");
 
         return true;
+    }
+
+    @Override
+    public Double getTotalExpenseByUser(String email) throws ExpenseNotFoundException, GetUserException {
+        User user = userUtilsImpl.getUserByEmail(email);
+        List<ExpenseResponse> expenseResponses = new ArrayList<>();
+
+        List<Expense> expenses = expenseRepository.findByIdUser(user.getId());
+        log.info("All expenses were obtained");
+
+        if (expenses == null || expenses.isEmpty()) {
+            throw new ExpenseNotFoundException("No expenses found for user with email: " + email);
+        }
+
+        return expenses.stream()
+                .mapToDouble(Expense::getAmount)
+                .sum();
+    }
+
+    @Override
+    public List<ExpenseCategoryByUserResponse> getTotalExpensesByUserGroupedByCategory(String email) throws ExpenseNotFoundException, GetUserException {
+        User user = userUtilsImpl.getUserByEmail(email);
+        List<Expense> expenses = expenseRepository.findByIdUser(user.getId());
+
+        log.info("All expenses were obtained for user: {}", email);
+
+        if (expenses.isEmpty()) {
+            throw new ExpenseNotFoundException("No expenses found for user with email: " + email);
+        }
+
+        return expenses.stream()
+                .collect(Collectors.groupingBy(Expense::getCategory, Collectors.summingDouble(Expense::getAmount)))
+                .entrySet().stream()
+                .map(entry -> new ExpenseCategoryByUserResponse(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
     }
 
     private Expense mapToExpense(ExpenseRequest expenseRequest) throws GetUserException, GetCategoryException {
