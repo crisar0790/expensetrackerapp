@@ -139,6 +139,43 @@ DELETE /api/expenses/{id}
 
 ---
 
+#### Get Total Expense by User
+**Endpoint:** `GET /user/total/{email}`
+**Description:** Retrieves the total amount of expenses for a specific user.
+**Response:**
+```json
+1500.75
+```
+**Status Codes:**
+- `200 OK` - Successfully retrieved total expenses
+- `404 Not Found` - User or expenses not found
+
+---
+
+#### Get Total Expenses by User Grouped by Category
+**Endpoint:** `GET /user/total-by-category/{email}`
+**Description:** Retrieves total expenses for a user grouped by category.
+**Response:**
+```json
+[
+  {
+    "category": "Food",
+    "amount": 500.00
+  },
+  {
+    "category": "Transport",
+    "amount": 300.75
+  }
+]
+```
+**Status Codes:**
+- `200 OK` - Successfully retrieved expenses grouped by category
+- `404 Not Found` - User or expenses not found
+
+
+
+
+
 ## Error Handling
 Errors return a JSON response with an error message:
 ```json
