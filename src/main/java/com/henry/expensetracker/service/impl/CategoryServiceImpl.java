@@ -22,6 +22,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Autowired
     private CategoryRepository categoryRepository;
 
+    @Override
     public CategoryResponse addCategory(CategoryRequest categoryRequest) throws AddCategoryException {
         Category category = mapToCategory(categoryRequest);
         categoryRepository.save(category);
@@ -30,7 +31,7 @@ public class CategoryServiceImpl implements CategoryService {
         return mapToCategoryResponse(category);
     }
 
-    public List<CategoryResponse> getAllCategories() throws GetCategoryException {
+    @Override    public List<CategoryResponse> getAllCategories() throws GetCategoryException {
         return categoryRepository.findAll().stream()
                 .map(this::mapToCategoryResponse)
                 .collect(Collectors.toList());
