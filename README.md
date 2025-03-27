@@ -5,7 +5,7 @@ The Expense Tracker API provides endpoints for managing users, categories, and e
 
 ## Base URL
 ```
-http://localhost:8080/api
+http://localhost:8080
 ```
 
 ## Endpoints
@@ -36,7 +36,8 @@ POST /api/categories
 **Request Body:**
 ```json
 {
-  "name": "Food"
+  "name": "Food",
+  "description": "Expenses on meals, groceries, and dining out."
 }
 ```
 **Responses:**
